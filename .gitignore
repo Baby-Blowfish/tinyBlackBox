@@ -1,0 +1,17 @@
+bin/
+*.o
+*.out
+*.exe
+
+# GoogleTest 빌드 디렉토리
+lib/third-party-library1/
+
+.vscode/
+
+.clang-format
+
+*.swp
+
+data/
+
+.DS_Store
