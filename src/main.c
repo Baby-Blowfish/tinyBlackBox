@@ -20,7 +20,7 @@ int main(void)
 {
   const char *fname = "test.raw";
   capture_arg_t *arg = NULL;
-  FramePool *pool = NULL;
+  MemoryPool *pool = NULL;
 
   // 1) 테스트용 RAW 파일 만들기 (각 프레임 바이트값 = 프레임 인덱스)
   int wfd = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -50,7 +50,7 @@ int main(void)
   }
 
   // 2) FramePool 생성
-  pool = frame_pool_init(WIDTH, HEIGHT, POOL_SIZE);
+  pool = mp_create(POOL_SIZE, );
   if (!pool)
   {
     fprintf(stderr, "ERROR: frame_pool_init failed\n");

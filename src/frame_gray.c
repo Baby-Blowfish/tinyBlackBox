@@ -1,40 +1,48 @@
 #include "frame_gray.h"
 
-Frame *frame_gray_create(size_t width, size_t height) {
+Frame *frame_gray_create(size_t width, size_t height)
+{
   Frame *f = malloc(sizeof(*f));
-  if (!f) {
+  if (!f)
+  {
     errno = ENOMEM;
     return NULL;
   }
   // 내부 초기화
-  if (frame_gray_init(f, width, height) != 0) {
+  if (frame_gray_init(f, width, height) != 0)
+  {
     free(f);
     return NULL;
   }
   return f;
 }
 
-void frame_gray_free(Frame *frame) {
+void frame_gray_free(Frame *frame)
+{
   if (!frame)
     return;
   frame_gray_destroy(frame);
   free(frame);
 }
 
-int frame_gray_init(Frame *frame, size_t width, size_t height) {
-  if (!frame || width == 0 || height == 0) {
+int frame_gray_init(Frame *frame, size_t width, size_t height)
+{
+  if (!frame || width == 0 || height == 0)
+  {
     errno = EINVAL;
     return -1;
   }
 
   size_t count;
-  if (__builtin_mul_overflow(width, height, &count)) {
+  if (__builtin_mul_overflow(width, height, &count))
+  {
     errno = EOVERFLOW;
     return -1;
   }
 
   unsigned char *buf = calloc(count, sizeof(unsigned char *));
-  if (!buf) {
+  if (!buf)
+  {
     errno = ENOMEM;
     return -1;
   }
@@ -47,7 +55,8 @@ int frame_gray_init(Frame *frame, size_t width, size_t height) {
   return 0;
 }
 
-void frame_gray_destroy(Frame *frame) {
+void frame_gray_destroy(Frame *frame)
+{
   if (!frame || !frame->data)
     return;
   free(frame->data);
@@ -59,7 +68,8 @@ void frame_gray_destroy(Frame *frame) {
  * @param   frame [in] 유효한 Frame 포인터
  * @return  버퍼 포인터 (NULL 허용)
  */
-unsigned char *frame_gray_get_data(Frame *frame) {
+unsigned char *frame_gray_get_data(Frame *frame)
+{
   if (!frame)
     return NULL;
   return frame->data;
@@ -70,25 +80,29 @@ unsigned char *frame_gray_get_data(Frame *frame) {
  * @param   frame [in] 유효한 Frame 포인터
  * @return  const 버퍼 포인터 (NULL 허용)
  */
-const unsigned char *frame_gray_get_data_const(const Frame *frame) {
+const unsigned char *frame_gray_get_data_const(const Frame *frame)
+{
   if (!frame)
     return NULL;
   return frame->data;
 }
 
-size_t frame_gray_get_width(const Frame *frame) {
+size_t frame_gray_get_width(const Frame *frame)
+{
   if (!frame)
     return 0;
   return frame->width;
 }
 
-size_t frame_gray_get_height(const Frame *frame) {
+size_t frame_gray_get_height(const Frame *frame)
+{
   if (!frame)
     return 0;
   return frame->height;
 }
 
-size_t frame_gray_get_seq(const Frame *frame) {
+size_t frame_gray_get_seq(const Frame *frame)
+{
   if (!frame)
     return 0;
   return frame->seq;
@@ -99,11 +113,13 @@ size_t frame_gray_get_seq(const Frame *frame) {
  * @param   frame   [in] 출력할 Frame 포인터 (NULL 허용)
  * @param   out     [in] 출력 대상 스트림 (NULL이면 stdout)
  */
-void frame_gray_dump_info(const Frame *frame, FILE *out) {
+void frame_gray_dump_info(const Frame *frame, FILE *out)
+{
   if (!out)
     out = stdout;
 
-  if (!frame) {
+  if (!frame)
+  {
     fprintf(out, "[Frame] (null)\n");
     return;
   }
@@ -115,12 +131,15 @@ void frame_gray_dump_info(const Frame *frame, FILE *out) {
   fprintf(out, "  Size       : %zu bytes\n", frame->width * frame->height);
 }
 
-static ssize_t full_write(int fd, const void *buf, size_t count) {
+static ssize_t full_write(int fd, const void *buf, size_t count)
+{
   const char *p = buf;
   size_t written = 0;
-  while (written < count) {
+  while (written < count)
+  {
     ssize_t n = write(fd, p + written, count - written);
-    if (n < 0) {
+    if (n < 0)
+    {
       if (errno == EINTR)
         continue;
       return -1;
@@ -130,12 +149,15 @@ static ssize_t full_write(int fd, const void *buf, size_t count) {
   return written;
 }
 
-static ssize_t full_read(int fd, void *buf, size_t count) {
+static ssize_t full_read(int fd, void *buf, size_t count)
+{
   char *p = buf;
   size_t readn = 0;
-  while (readn < count) {
+  while (readn < count)
+  {
     ssize_t n = read(fd, p + readn, count - readn);
-    if (n < 0) {
+    if (n < 0)
+    {
       if (errno == EINTR)
         continue;
       return -1;
@@ -144,11 +166,13 @@ static ssize_t full_read(int fd, void *buf, size_t count) {
       break; // EOF
     readn += n;
   }
-  return (readn == count) ? readn : -1;
+  return (readn == count) ? (ssize_t)readn : -1;
 }
 
-ssize_t frame_gray_write_data(int fd, const Frame *frame) {
-  if (!frame || !frame->data) {
+ssize_t frame_gray_write_data(int fd, const Frame *frame)
+{
+  if (!frame || !frame->data)
+  {
     errno = EINVAL;
     return -1;
   }
@@ -158,8 +182,10 @@ ssize_t frame_gray_write_data(int fd, const Frame *frame) {
   return ret;
 }
 
-ssize_t frame_gray_read_data(int fd, Frame *frame) {
-  if (!frame || !frame->data) {
+ssize_t frame_gray_read_data(int fd, Frame *frame)
+{
+  if (!frame || !frame->data)
+  {
     errno = EINVAL;
     return -1;
   }
@@ -169,8 +195,10 @@ ssize_t frame_gray_read_data(int fd, Frame *frame) {
   return ret;
 }
 
-ssize_t frame_gray_read_loop(int fd, Frame *frame) {
-  if (!frame || !frame->data) {
+ssize_t frame_gray_read_loop(int fd, Frame *frame)
+{
+  if (!frame || !frame->data)
+  {
     errno = EINVAL;
     return -1;
   }
@@ -179,16 +207,20 @@ ssize_t frame_gray_read_loop(int fd, Frame *frame) {
   char *buf = (char *)frame->data;
   size_t readn = 0;
 
-  while (readn < count) {
+  while (readn < count)
+  {
     ssize_t n = read(fd, buf + readn, count - readn);
-    if (n < 0) {
+    if (n < 0)
+    {
       if (errno == EINTR)
         continue;
       return -1;
     }
-    if (n == 0) {
+    if (n == 0)
+    {
       // EOF → 파일 처음으로 이동
-      if (lseek(fd, 0, SEEK_SET) < 0) {
+      if (lseek(fd, 0, SEEK_SET) < 0)
+      {
         return -1;
       }
       continue;

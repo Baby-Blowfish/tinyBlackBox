@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> // for memset
@@ -22,7 +23,7 @@ extern "C"
   {
     pthread_t tid;
     int fd;
-    FramePool *pool;
+    MemoryPool *pool;
     volatile bool run;
   } capture_arg_t;
 
