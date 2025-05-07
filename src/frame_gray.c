@@ -17,11 +17,11 @@ Frame *frame_gray_create(size_t width, size_t height)
   return f;
 }
 
-void frame_gray_free(Frame *frame)
+void frame_gray_destroy(Frame *frame)
 {
   if (!frame)
     return;
-  frame_gray_destroy(frame);
+  frame_gray_free(frame);
   free(frame);
 }
 
@@ -55,7 +55,7 @@ int frame_gray_init(Frame *frame, size_t width, size_t height)
   return 0;
 }
 
-void frame_gray_destroy(Frame *frame)
+void frame_gray_free(Frame *frame)
 {
   if (!frame || !frame->data)
     return;

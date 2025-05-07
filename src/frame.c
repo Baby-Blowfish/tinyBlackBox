@@ -1,6 +1,6 @@
 #include "frame.h"
 
-Frame *frame_create(size_t width, size_t height, size_t depth)
+Frame *frame_create(size_t width, size_t height, DEPTH depth)
 {
   Frame *f = malloc(sizeof(*f));
   if (!f)
@@ -17,15 +17,15 @@ Frame *frame_create(size_t width, size_t height, size_t depth)
   return f;
 }
 
-void frame_free(Frame *frame)
+void frame_destroy(Frame *frame)
 {
   if (!frame)
     return;
-  frame_destroy(frame);
+  frame_free(frame);
   free(frame);
 }
 
-int frame_init(Frame *frame, size_t width, size_t height, size_t depth)
+int frame_init(Frame *frame, size_t width, size_t height, DEPTH depth)
 {
   if (!frame || width == 0 || height == 0 || depth == 0)
   {
@@ -56,7 +56,7 @@ int frame_init(Frame *frame, size_t width, size_t height, size_t depth)
   return 0;
 }
 
-void frame_destroy(Frame *frame)
+void frame_free(Frame *frame)
 {
   if (!frame || !frame->data)
     return;
@@ -94,7 +94,7 @@ size_t frame_get_height(const Frame *frame)
   return frame ? frame->height : 0;
 }
 
-size_t frame_get_depth(const Frame *frame)
+DEPTH frame_get_depth(const Frame *frame)
 {
   return frame ? frame->depth : 0;
 }
@@ -124,7 +124,7 @@ void frame_dump_info(const Frame *frame, FILE *out)
 
   fprintf(out, "[Frame]\n");
   fprintf(out, "  Resolution : %zux%zu\n", frame->width, frame->height);
-  fprintf(out, "  Depth      : %zu bytes\n", frame->depth);
+  fprintf(out, "  Depth      : %u bytes\n", frame->depth);
   fprintf(out, "  Sequence   : %zu\n", frame->seq);
   fprintf(out, "  Data Ptr   : %p\n", frame->data);
   fprintf(out, "  Size       : %zu bytes\n", total);

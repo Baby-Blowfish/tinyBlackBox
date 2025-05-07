@@ -21,17 +21,36 @@ extern "C"
 
   typedef struct
   {
-    pthread_t tid;
     int fd;
-    MemoryPool *pool;
+    FramePool *pool;
+    pthread_t tid;
     volatile bool run;
-  } capture_arg_t;
+  } CapArg;
 
-  capture_arg_t *capture_init(const char *filename);
+  /**
+   * @brief   CapArg 구조체를 할당 및 초기화(pthread_t 제외)
+   * @param   filename    [in] 캡처할 파일 이름 (읽기 전용)
+   * @param   count       [in] 풀에 미리 생성할 Frame 개수 (>0)
+   * @param   pixel_size  [in] 한 픽셀 당 바이트 수 (ex. GRAY=1, RGB=3)
+   * @param   width       [in] 프레임 가로 해상도 (>0)
+   * @param   height      [in] 프레임 세로 해상도 (>0)
+   * @return  성공 시 MemoryPool*, 실패 시 NULL (errno 설정)
+   */
+  CapArg *capture_init(const char *filename, size_t count, size_t pixel_size, size_t width,
+                       size_t height);
 
-  bool capture_run(capture_arg_t *arg);
+  /**
+   * @brief   캡처 쓰레드를 실행합니다.
+   * @param   arg [in] 캡처 인자 구조체 포인터
+   * @return  true: 성공, false: 실패
+   */
+  bool capture_run(CapArg *arg);
 
-  void capture_destroy(capture_arg_t *arg);
+  /**
+   * @brief   캡처 쓰레드를 종료합니다.
+   * @param   arg [in] 캡처 인자 구조체 포인터
+   */
+  void capture_destroy(CapArg *arg);
 
 #ifdef __cplusplus
 }

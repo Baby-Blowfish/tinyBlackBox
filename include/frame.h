@@ -11,11 +11,12 @@ extern "C"
 #include <stdlib.h>
 #include <unistd.h>
 
-  enum DEPTH
+  typedef enum
   {
     GRAY = 1,
-    RGB = 3
-  };
+    RGB = 3,
+    RGBA = 4,
+  } DEPTH;
 
   /**
    * @brief   범용 Frame 구조체.
@@ -23,11 +24,11 @@ extern "C"
    */
   typedef struct Frame
   {
-    size_t width;  ///< 가로 해상도 (px)
-    size_t height; ///< 세로 해상도 (px)
-    size_t seq;    ///< 시퀀스 번호
-    size_t depth;  ///< 픽셀당 바이트 수 (ex: 1=GRAY, 3=RGB)
-    void *data;    ///< 픽셀 데이터 (width * height * depth 바이트)
+    size_t width;  // 가로 해상도 (px)
+    size_t height; // 세로 해상도 (px)
+    DEPTH depth;   // 픽셀당 바이트 수 (ex: 1=GRAY, 3=RGB)
+    size_t seq;    // 시퀀스 번호
+    void *data;    // 픽셀 데이터 (width * height * depth 바이트)
   } Frame;
 
   /**
@@ -37,13 +38,13 @@ extern "C"
    * @param   depth   [in] 픽셀당 바이트 수 (>0)
    * @return  성공 시 Frame* (NULL on failure; errno 설정)
    */
-  Frame *frame_create(size_t width, size_t height, size_t depth);
+  Frame *frame_create(size_t width, size_t height, DEPTH depth);
 
   /**
    * @brief   동적 할당된 Frame 객체와 내부 버퍼를 모두 해제합니다.
    * @param   frame   [in] 해제할 Frame 포인터 (NULL safe)
    */
-  void frame_free(Frame *frame);
+  void frame_destroy(Frame *frame);
 
   /**
    * @brief   Frame 내부 데이터를 초기화하고 버퍼를 할당합니다.
@@ -52,15 +53,18 @@ extern "C"
    * @param   height  [in]  세로 해상도 (px, >0)
    * @param   depth   [in]  픽셀당 바이트 수 (>0)
    * @return  0: 성공, -1: 실패 (errno 설정)
-   * @note    errno = EINVAL/EOVERFLOW/ENOMEM
+   * @note    실패 원인:
+   *          - errno = EINVAL: frame==NULL || width==0 || height==0
+   *          - errno = EOVERFLOW: width * height overflow
+   *          - errno = ENOMEM: 메모리 할당 실패
    */
-  int frame_init(Frame *frame, size_t width, size_t height, size_t depth);
+  int frame_init(Frame *frame, size_t width, size_t height, DEPTH depth);
 
   /**
    * @brief   frame_init()으로 할당된 내부 버퍼를 해제합니다.
    * @param   frame   [in] 초기화된 Frame 포인터 (NULL safe)
    */
-  void frame_destroy(Frame *frame);
+  void frame_free(Frame *frame);
 
   /**
    * @brief   Frame의 픽셀 데이터 버퍼를 반환합니다. (쓰기 가능)
@@ -93,7 +97,7 @@ extern "C"
   /**
    * @brief   Frame의 픽셀당 바이트 수(depth) 반환합니다.
    */
-  size_t frame_get_depth(const Frame *frame);
+  DEPTH frame_get_depth(const Frame *frame);
 
   /**
    * @brief   Frame의 시퀸스 번호를 반환합니다.

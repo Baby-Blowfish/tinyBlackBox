@@ -11,6 +11,7 @@ extern "C"
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
   /**
    * @brief 메모리 풀 블록 구조체

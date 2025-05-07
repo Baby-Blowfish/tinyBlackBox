@@ -40,7 +40,7 @@ extern "C"
    * 해제합니다.
    * @param   frame   [in] 해제할 Frame 포인터 (NULL safe)
    */
-  void frame_gray_free(Frame *frame);
+  void frame_gray_destroy(Frame *frame);
 
   /**
    * @brief   Frame 내부 데이터를 초기화하고 버퍼을 할당합니다.
@@ -59,7 +59,7 @@ extern "C"
    * @brief   frame_gray_init()으로 할당된 내부 버퍼를 해제합니다.
    * @param   frame   [in] 초기화된 Frame 포인터 (NULL safe)
    */
-  void frame_gray_destroy(Frame *frame);
+  void frame_gray_free(Frame *frame);
 
   /**
    * @brief   Frame의 픽셀 데이터 버퍼를 반환합니다. (쓰기 가능)

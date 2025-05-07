@@ -93,9 +93,10 @@ thread_exit:
   return NULL;
 }
 
-capture_arg_t *capture_init(const char *filename)
+CapArg *capture_init(const char *filename, size_t count, size_t pixel_size, size_t width,
+                     size_t height)
 {
-  capture_arg_t *arg = (capture_arg_t *)calloc(1, sizeof(capture_arg_t));
+  CapArg *arg = (CapArg *)calloc(1, sizeof(CapArg));
   if (!arg)
   {
     fprintf(stderr, "%s:%d in %s() → failed to allocate capture_arg_t\n", __FILE__, __LINE__,
@@ -111,12 +112,20 @@ capture_arg_t *capture_init(const char *filename)
     goto FAIL;
   }
 
+  arg->pool = frame_pool_create(count, pixel_size, width, height);
+  if (!arg->pool)
+  {
+    fprintf(stderr, "%s:%d in %s() → failed to create frame pool\n", __FILE__, __LINE__, __func__);
+    goto FAIL;
+  }
 
   arg->run = true;
 
   return arg;
 
 FAIL:
+  if (arg->pool)
+    frame_pool_destroy(arg->pool);
   if (arg->fd != -1)
     close(arg->fd);
   if (arg)
@@ -124,7 +133,7 @@ FAIL:
   return NULL;
 }
 
-bool capture_run(capture_arg_t *arg)
+bool capture_run(CapArg *arg)
 {
 
   if (pthread_create(&arg->tid, NULL, capture_thread, (void *)arg) != 0)
@@ -136,7 +145,7 @@ bool capture_run(capture_arg_t *arg)
   return true;
 }
 
-void capture_destroy(capture_arg_t *arg)
+void capture_destroy(CapArg *arg)
 {
   frame_pool_destroy(arg->pool);
   close(arg->fd);
