@@ -2,7 +2,7 @@
 
 static void *capture_thread(void *arg)
 {
-  capture_arg_t *ctx = (capture_arg_t *)arg;
+  CapArg *ctx = (CapArg *)arg;
   FramePool *pool = ctx->pool;
   Queue *free_q = pool->free_q;
   Queue *display_q = pool->display_q;
@@ -93,13 +93,13 @@ thread_exit:
   return NULL;
 }
 
-CapArg *capture_init(const char *filename, size_t count, size_t pixel_size, size_t width,
-                     size_t height)
+CapArg *capture_init(const char *filename, size_t pool_size, size_t width, size_t height,
+                     DEPTH depth)
 {
   CapArg *arg = (CapArg *)calloc(1, sizeof(CapArg));
   if (!arg)
   {
-    fprintf(stderr, "%s:%d in %s() → failed to allocate capture_arg_t\n", __FILE__, __LINE__,
+    fprintf(stderr, "%s:%d in %s() → failed to allocate CapArg\n", __FILE__, __LINE__,
             __func__);
     return false;
   }
@@ -112,7 +112,7 @@ CapArg *capture_init(const char *filename, size_t count, size_t pixel_size, size
     goto FAIL;
   }
 
-  arg->pool = frame_pool_create(count, pixel_size, width, height);
+  arg->pool = frame_pool_create(pool_size, width, height, depth);
   if (!arg->pool)
   {
     fprintf(stderr, "%s:%d in %s() → failed to create frame pool\n", __FILE__, __LINE__, __func__);
@@ -130,6 +130,7 @@ FAIL:
     close(arg->fd);
   if (arg)
     free(arg);
+    arg = NULL;
   return NULL;
 }
 
@@ -149,5 +150,6 @@ void capture_destroy(CapArg *arg)
 {
   frame_pool_destroy(arg->pool);
   close(arg->fd);
-  safe_free((void **)arg);
+  free(arg);
+  arg = NULL;
 }

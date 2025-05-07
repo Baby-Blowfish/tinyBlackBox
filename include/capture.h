@@ -36,8 +36,8 @@ extern "C"
    * @param   height      [in] 프레임 세로 해상도 (>0)
    * @return  성공 시 MemoryPool*, 실패 시 NULL (errno 설정)
    */
-  CapArg *capture_init(const char *filename, size_t count, size_t pixel_size, size_t width,
-                       size_t height);
+  CapArg *capture_init(const char *filename, size_t pool_size, size_t width, size_t height,
+                       DEPTH depth);
 
   /**
    * @brief   캡처 쓰레드를 실행합니다.
