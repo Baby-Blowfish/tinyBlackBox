@@ -1,55 +1,42 @@
-# ===== 공통 설정 =====
-CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude
-LDLIBS = -pthread
+# ===== 컴파일러 설정 =====
+CC      := gcc
+CFLAGS  := -Wall -Wextra -Iinclude
+LDLIBS  := -pthread
 
-CXX = g++
-GTEST_DIR = /usr/src/gtest
-GTEST_INC = $(GTEST_DIR)/include
-GTEST_BUILD_DIR = $(GTEST_DIR)/build
-GTEST_LIB = $(GTEST_BUILD_DIR)/lib/libgtest.a $(GTEST_BUILD_DIR)/lib/libgtest_main.a
-CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude -I$(GTEST_INC)
+# ===== 디렉토리 =====
+SRC_DIR   := src
+TEST_DIR  := test
+BIN_DIR   := bin
 
-SRC_DIR = src
-TEST_DIR = test
-BIN_DIR = bin
+# ===== 소스 파일 =====
+SRC_SRCS    := $(wildcard $(SRC_DIR)/*.c)
+FRAME_SRCS  := $(SRC_DIR)/frame.c $(SRC_DIR)/frame_pool.c
 
-# ===== 소스 및 테스트 파일 =====
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
-SOURCES_TEST = $(filter-out $(SRC_DIR)/main.c, $(SOURCES))
-TEST_CPP = $(wildcard $(TEST_DIR)/*.cpp)
+# ===== 실행 파일 =====
+TARGET       := $(BIN_DIR)/tinyBlackBox
+TEST_TARGET  := $(BIN_DIR)/test_frame
 
+# ===== 기본/테스트/클린 타겟 =====
+.PHONY: all test clean
 
-# 테스트 타겟은 반드시 실행용 main.c를 제외
-TARGET = $(BIN_DIR)/tinyBlackBox
-TEST_TARGET = $(BIN_DIR)/tinyBlackBox_test
+all: $(TARGET)
 
-# ===== 빌드 타겟 =====
-all: $(BIN_DIR) $(TARGET)
-
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-
-$(TARGET): $(SOURCES)
+# ─── 메인 바이너리 빌드 (전체 src/*.c) ─────────────────
+$(TARGET): $(SRC_SRCS)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-test: $(BIN_DIR) $(TEST_CPP) $(SOURCES_TEST)
-	$(CXX) $(CXXFLAGS) -pthread -o $(TEST_TARGET) $(TEST_CPP) $(SOURCES_TEST) $(GTEST_LIB)
+# ─── 테스트 바이너리 빌드 (Check) ─────────────────────
+# test_frame.c + frame.c + frame_pool.c -> bin/test_frame
+$(TEST_TARGET): $(TEST_DIR)/test_frame.c $(FRAME_SRCS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ -lcheck -lm -lrt -lsubunit -pthread
 
-run: $(TARGET)
-	./$(TARGET)
+# ─── 테스트 실행 ───────────────────────────────────────
+test: $(TEST_TARGET)
+	@echo "=== Running frame module tests ==="
+	./$(TEST_TARGET)
 
-debug:
-	$(CC) $(CFLAGS) -g -o $(TARGET) $(SOURCES) $(LDLIBS)
-
-lint:
-	cppcheck --enable=all --inconclusive --std=c99 --language=c \
-	-Iinclude -I/usr/include -I/usr/include/x86_64-linux-gnu \
-	src include
-
-
+# ─── 클린 업 ───────────────────────────────────────────
 clean:
-	rm -f $(TARGET) $(TEST_TARGET)
-
-.PHONY: all test run debug clean
-
+	rm -rf $(BIN_DIR)
