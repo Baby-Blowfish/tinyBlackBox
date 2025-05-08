@@ -34,6 +34,7 @@ extern "C"
     size_t total_bytes_per_frame; // 총 바이트 수 (width * height * depth)
     FrameBlock *free_list;        // 사용 가능한 블록 리스트
     pthread_mutex_t mutex;        // free_list 보호용 뮤텍스
+    pthread_cond_t cond;          // 블록 할당 대기용 조건 변수
   } FramePool;
 
   /**

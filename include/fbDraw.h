@@ -8,13 +8,13 @@ extern "C"
 
 #include <fcntl.h>
 #include <linux/fb.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
-
 
 /**
  * @brief Error codes for framebuffer operations
@@ -68,6 +68,27 @@ extern "C"
    * @author Kim Hyo Jin
    */
   int fb_init(dev_fb *fb);
+
+  /**
+   * @brief  이미 초기화된 fb 에 1바이트 그레이스케일 프레임을 nearest-neighbor 스케일링하여 그림.
+   * @param  fb     초기화 및 mmap 이 완료된 framebuffer 디바이스 구조체
+   * @param  gray   입력 그레이스케일 데이터 버퍼 (raw_w * raw_h 바이트, 0~255)
+   * @param  raw_w  입력 영상 가로 해상도
+   * @param  raw_h  입력 영상 세로 해상도
+   * @return 0: 성공, 음수: 오류
+   */
+  int fb_drawGray(dev_fb *fb, const ubyte *gray, int raw_w, int raw_h);
+
+  /**
+   * @brief Calculates the memory offset for a pixel at given coordinates
+   * @param fb Pointer to the framebuffer device
+   * @param x X-coordinate of the pixel
+   * @param y Y-coordinate of the pixel
+   * @return Memory offset for the pixel in the framebuffer
+   * @details Computes the location in the framebuffer memory where the pixel data is stored
+   *          based on the screen resolution and color depth.
+   */
+  size_t locate(dev_fb *fb, int x, int y);
 
   /**
    * @brief Creates a pixel object from x and y coordinates

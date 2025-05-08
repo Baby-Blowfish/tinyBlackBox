@@ -18,13 +18,15 @@ static void *record_thread(void *arg)
 
   fprintf(stderr, "%s:%d in %s() → record thread start \n", __FILE__, __LINE__, __func__);
 
-  int num = 3;
-  size_t seq = 0;
+  // int num = 200;
+  // size_t seq = 0;
 
-  while ((num--) > 0)
+  // while ((num--) > 0)
+  // {
+  while (1)
   {
-    fprintf(stderr, "%s:%d in %s() → record thread seq = %ld \n", __FILE__, __LINE__, __func__, seq++);
-    // queue the frame block to the record queue
+    // fprintf(stderr, "%s:%d in %s() → record thread seq = %ld \n", __FILE__, __LINE__, __func__,
+    // seq++); queue the frame block to the record queue
     pthread_mutex_lock(&rec_arg->record_q->mutex);
     while (is_empty(rec_arg->record_q))
     {
@@ -42,9 +44,6 @@ static void *record_thread(void *arg)
     }
 
     // release the frame block
-    fp_release(frame_pool, fb);
-
-    /////////////// 테스트 용도
     fp_release(frame_pool, fb);
   }
 

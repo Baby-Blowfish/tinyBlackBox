@@ -64,6 +64,7 @@ int frame_pool_init(FramePool *fp, size_t pool_size, size_t width, size_t height
   }
 
   pthread_mutex_init(&fp->mutex, NULL);
+  pthread_cond_init(&fp->cond, NULL);
 
   for (size_t i = 0; i < pool_size; ++i)
   {
@@ -111,6 +112,11 @@ FrameBlock *fp_alloc(FramePool *fp, int init_count)
     return NULL;
   }
   pthread_mutex_lock(&fp->mutex);
+  // free_list가 비어 있으면 cond로 대기
+  while (fp->free_list == NULL)
+  {
+    pthread_cond_wait(&fp->cond, &fp->mutex);
+  }
   FrameBlock *f = fp->free_list;
   if (f)
   {
@@ -145,6 +151,7 @@ void fp_release(FramePool *fp, FrameBlock *blk)
     pthread_mutex_lock(&fp->mutex);
     blk->next = fp->free_list;
     fp->free_list = blk;
+    pthread_cond_signal(&fp->cond);
     pthread_mutex_unlock(&fp->mutex);
   }
 }

@@ -66,9 +66,15 @@ int main(void)
     return EXIT_FAILURE;
   }
 
+  if (display_run(disp_arg, &display_thread) == false)
+  {
+    return EXIT_FAILURE;
+  }
+
   // Wait for the capture thread to finish
   pthread_join(capture_thread, NULL);
   pthread_join(record_thread, NULL);
+  pthread_join(display_thread, NULL);
 
   if (disp_arg)
     free(disp_arg);

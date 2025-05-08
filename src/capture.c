@@ -19,11 +19,13 @@ static void *capture_thread(void *arg)
 
   fprintf(stderr, "%s:%d in %s() → capture thread start \n", __FILE__, __LINE__, __func__);
 
-  int num = 3;
+  // int num = 200;
 
-  while ((num--) > 0)
+  // while ((num--) > 0)
+  // {
+  while (1)
   {
-    fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__, seq);
+    // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__, seq);
 
     // Allocate a frame block from the pool
     fb = fp_alloc(frame_pool, 2);
