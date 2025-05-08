@@ -2,6 +2,8 @@
 #ifndef THREAD_ARGS_H
 #define THREAD_ARGS_H
 
+#include <semaphore.h>
+
 #include "frame_pool.h"
 #include "queue.h" // Queue 타입 정의
 
@@ -15,21 +17,12 @@
 
 typedef struct
 {
+  int fd_in;
+  int fd_out;
+  sem_t wrap_sem;
   Queue *display_q;
   Queue *record_q;
   FramePool *frame_pool;
-} CaptureArgs;
-
-typedef struct
-{
-  Queue *display_q;
-  FramePool *frame_pool;
-} DisplayArgs;
-
-typedef struct
-{
-  Queue *record_q;
-  FramePool *frame_pool;
-} RecordArgs;
+} SharedCtx;
 
 #endif // THREAD_ARGS_H

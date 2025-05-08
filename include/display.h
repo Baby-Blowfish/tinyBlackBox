@@ -23,7 +23,7 @@ extern "C"
    * @param   tid [out] display 쓰레드 ID
    * @return  true: 성공, false: 실패
    */
-  bool display_run(DisplayArgs *arg, pthread_t *tid);
+  bool display_run(SharedCtx *arg, pthread_t *tid);
 
 #ifdef __cplusplus
 }

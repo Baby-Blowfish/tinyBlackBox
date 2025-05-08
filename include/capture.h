@@ -24,7 +24,7 @@ extern "C"
    * @param   tid [out] 캡처 쓰레드 ID
    * @return  true: 성공, false: 실패
    */
-  bool capture_run(CaptureArgs *arg, pthread_t *tid);
+  bool capture_run(SharedCtx *arg, pthread_t *tid);
 
   /**
    * @brief  Open a raw video file and read its width and height.
@@ -42,7 +42,7 @@ extern "C"
    * @param[in]   fd          File descriptor (must be positioned after header).
    * @param[out]  buffer      Pointer to buffer of size `frame_size`.
    * @param[in]   frame_size  Number of bytes per frame (width * height).
-   * @return 0 on success, -1 on failure (errno is set).
+   * @return 0 on success, -1 on failure (errno is set), 1 on Wraparound.
    */
   int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame);
 

@@ -12,7 +12,7 @@ static void *record_thread(void *arg)
   }
 
   // Initialize the record arguments
-  RecordArgs *rec_arg = (RecordArgs *)arg;
+  SharedCtx *rec_arg = (SharedCtx *)arg;
   FramePool *frame_pool = rec_arg->frame_pool;
   FrameBlock *fb = NULL;
 
@@ -52,7 +52,7 @@ thread_exit:
   return NULL;
 }
 
-bool record_run(RecordArgs *arg, pthread_t *tid)
+bool record_run(SharedCtx *arg, pthread_t *tid)
 {
   if (pthread_create(tid, NULL, record_thread, (void *)arg) != 0)
   {
@@ -110,7 +110,7 @@ cleanup:
   return ret;
 }
 
-int raw_video_writer_write_frame(int fd, const unsigned char *buffer, size_t frame_size)
+int raw_video_write_frame(int fd, const unsigned char *buffer, size_t frame_size)
 {
   size_t remaining = frame_size;
   const unsigned char *ptr = buffer;

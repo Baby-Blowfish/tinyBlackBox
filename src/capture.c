@@ -12,7 +12,7 @@ static void *capture_thread(void *arg)
   }
 
   // Initialize the capture arguments
-  CaptureArgs *cap_arg = (CaptureArgs *)arg;
+  SharedCtx *cap_arg = (SharedCtx *)arg;
   FramePool *frame_pool = cap_arg->frame_pool;
   size_t seq = 0;
   FrameBlock *fb = NULL;
@@ -25,7 +25,8 @@ static void *capture_thread(void *arg)
   // {
   while (1)
   {
-    // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__, seq);
+    // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__,
+    // seq);
 
     // Allocate a frame block from the pool
     fb = fp_alloc(frame_pool, 2);
@@ -37,10 +38,13 @@ static void *capture_thread(void *arg)
     }
 
     // read the frame data into the block
-    if (raw_video_read_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
+    if ((wrapped = raw_video_read_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame)) < 0)
     {
       fprintf(stderr, "%s:%d in %s() → failed to read frame\n", __FILE__, __LINE__, __func__);
       goto thread_exit;
+    }
+    else if (wrapped == 1)
+    {
     }
 
     // Set the frame sequence number
@@ -72,7 +76,7 @@ thread_exit:
   return NULL;
 }
 
-bool capture_run(CaptureArgs *arg, pthread_t *tid)
+bool capture_run(SharedCtx *arg, pthread_t *tid)
 {
   if (pthread_create(tid, NULL, capture_thread, (void *)arg) != 0)
   {
@@ -155,7 +159,7 @@ int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame)
       //   return -1;
       // }
 
-      /* EOF → rewind past */
+      /* EOF → rewind 0 file offset */
       if (lseek(fd, 0, SEEK_SET) < 0)
       {
         perror("raw_video_read_frame: lseek");

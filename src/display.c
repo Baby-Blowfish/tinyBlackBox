@@ -7,7 +7,7 @@ static void *display_thread(void *arg)
 
   // Initialize the record arguments
   dev_fb frame_dev;
-  DisplayArgs *rec_arg = (DisplayArgs *)arg;
+  SharedCtx *rec_arg = (SharedCtx *)arg;
   FramePool *frame_pool = rec_arg->frame_pool;
   FrameBlock *fb = NULL;
 
@@ -57,7 +57,7 @@ thread_exit:
   return NULL;
 }
 
-bool display_run(DisplayArgs *arg, pthread_t *tid)
+bool display_run(SharedCtx *arg, pthread_t *tid)
 {
   if (pthread_create(tid, NULL, display_thread, (void *)arg) != 0)
   {

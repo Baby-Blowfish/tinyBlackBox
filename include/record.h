@@ -19,7 +19,7 @@ extern "C"
    * @param   tid [out] record 쓰레드 ID
    * @return  true: 성공, false: 실패
    */
-  bool record_run(RecordArgs *arg, pthread_t *tid);
+  bool record_run(SharedCtx *arg, pthread_t *tid);
 
   /**
    * @brief  Create (or truncate) a raw video file and write its header.
@@ -38,7 +38,7 @@ extern "C"
    * @param[in]   frame_size  Number of bytes per frame (width * height).
    * @return 0 on success, -1 on failure (errno is set).
    */
-  int raw_video_writer_write_frame(int fd, const unsigned char *buffer, size_t frame_size);
+  int raw_video_write_frame(int fd, const unsigned char *buffer, size_t frame_size);
 #ifdef __cplusplus
 }
 #endif

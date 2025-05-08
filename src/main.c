@@ -10,63 +10,52 @@ int main(void)
   pthread_t display_thread;
   pthread_t record_thread;
 
-  CaptureArgs *cap_arg = malloc(sizeof(CaptureArgs));
-  if (cap_arg == NULL)
+  SharedCtx *sh_ctx = malloc(sizeof(SharedCtx));
+  if (sh_ctx == NULL)
   {
-    fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for CaptureArgs\n", __FILE__,
-            __LINE__, __func__);
+    fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for SharedCtx\n", __FILE__, __LINE__,
+            __func__);
     return EXIT_FAILURE;
   }
 
-  DisplayArgs *disp_arg = malloc(sizeof(DisplayArgs));
-  if (disp_arg == NULL)
+  sh_ctx->fd_in = open("in.raw", O_RDONLY);
+  sh_ctx->fd_out = open("out.raw", O_RDWR | O_CREAT, 0666);
+
+  // 세마포어 초기화 (0으로 시작)
+  if (sem_init(&sh_ctx->wrap_sem, 0, 0) < 0)
   {
-    fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for DisplayArgs\n", __FILE__,
-            __LINE__, __func__);
+    perror("sem_init");
     return EXIT_FAILURE;
   }
 
-  RecordArgs *rec_arg = malloc(sizeof(RecordArgs));
-  if (rec_arg == NULL)
-  {
-    fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for RecordArgs\n", __FILE__,
-            __LINE__, __func__);
-    return EXIT_FAILURE;
-  }
-
-  cap_arg->display_q = queue_init(QUEUE_SIZE);
-  cap_arg->record_q = queue_init(QUEUE_SIZE);
-  if (cap_arg->display_q == NULL || cap_arg->record_q == NULL)
+  sh_ctx->display_q = queue_init(QUEUE_SIZE);
+  sh_ctx->record_q = queue_init(QUEUE_SIZE);
+  if (sh_ctx->display_q == NULL || sh_ctx->record_q == NULL)
   {
     fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for queues\n", __FILE__, __LINE__,
             __func__);
     return EXIT_FAILURE;
   }
-  disp_arg->display_q = cap_arg->display_q;
-  rec_arg->record_q = cap_arg->record_q;
 
-  FramePool *frame_pool = frame_pool_create(POOL_SIZE, WIDTH, HEIGHT, TYPE);
-  if (frame_pool == NULL)
+  sh_ctx->frame_pool = frame_pool_create(POOL_SIZE, WIDTH, HEIGHT, TYPE);
+  if (sh_ctx->frame_pool == NULL)
   {
     fprintf(stderr, "%s:%d in %s() → Failed to allocate memory for FramePool\n", __FILE__, __LINE__,
             __func__);
     return EXIT_FAILURE;
   }
-  cap_arg->frame_pool = frame_pool;
-  disp_arg->frame_pool = frame_pool;
-  rec_arg->frame_pool = frame_pool;
 
-  if (capture_run(cap_arg, &capture_thread) == false)
+  if (capture_run(sh_ctx, &capture_thread) == false)
   {
     return EXIT_FAILURE;
   }
 
-  if (record_run(rec_arg, &record_thread) == false)
+  if (record_run(sh_ctx, &record_thread) == false)
   {
     return EXIT_FAILURE;
   }
 
-  if (display_run(disp_arg, &display_thread) == false)
+  if (display_run(sh_ctx, &display_thread) == false)
   {
     return EXIT_FAILURE;
   }
@@ -76,23 +65,13 @@ int main(void)
   pthread_join(record_thread, NULL);
   pthread_join(display_thread, NULL);
 
-  if (disp_arg)
-    free(disp_arg);
-  disp_arg = NULL;
+  queue_destroy(sh_ctx->display_q);
+  queue_destroy(sh_ctx->record_q);
+  frame_pool_destroy(sh_ctx->frame_pool);
 
-  if (rec_arg)
-    free(rec_arg);
-  rec_arg = NULL;
-
-  queue_destroy(cap_arg->display_q);
-  queue_destroy(cap_arg->record_q);
-
-  if (cap_arg)
-    free(cap_arg);
-  cap_arg = NULL;
-
-  frame_pool_destroy(frame_pool);
-  frame_pool = NULL;
+  if (sh_ctx)
+    free(sh_ctx);
+  sh_ctx = NULL;
 
   return EXIT_SUCCESS;
 }
