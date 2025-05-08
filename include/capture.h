@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,42 +16,35 @@ extern "C"
 #include <sys/types.h>
 #include <unistd.h> // for usleep
 
-#include "frame_pool.h"
-
-#define FRAME_INTERVAL_US 33 // 33ms
-
-  typedef struct
-  {
-    int fd;
-    FramePool *pool;
-    pthread_t tid;
-    volatile bool run;
-  } CapArg;
-
-  /**
-   * @brief   CapArg 구조체를 할당 및 초기화(pthread_t 제외)
-   * @param   filename    [in] 캡처할 파일 이름 (읽기 전용)
-   * @param   count       [in] 풀에 미리 생성할 Frame 개수 (>0)
-   * @param   pixel_size  [in] 한 픽셀 당 바이트 수 (ex. GRAY=1, RGB=3)
-   * @param   width       [in] 프레임 가로 해상도 (>0)
-   * @param   height      [in] 프레임 세로 해상도 (>0)
-   * @return  성공 시 MemoryPool*, 실패 시 NULL (errno 설정)
-   */
-  CapArg *capture_init(const char *filename, size_t pool_size, size_t width, size_t height,
-                       DEPTH depth);
+#include "thread_arg.h"
 
   /**
    * @brief   캡처 쓰레드를 실행합니다.
    * @param   arg [in] 캡처 인자 구조체 포인터
+   * @param   tid [out] 캡처 쓰레드 ID
    * @return  true: 성공, false: 실패
    */
-  bool capture_run(CapArg *arg);
+  bool capture_run(CaptureArgs *arg, pthread_t *tid);
 
   /**
-   * @brief   캡처 쓰레드를 종료합니다.
-   * @param   arg [in] 캡처 인자 구조체 포인터
+   * @brief  Open a raw video file and read its width and height.
+   * @param[in]   filepath  Path to the raw video file.
+   * @param[out]  fd        Pointer to store opened file descriptor.
+   * @param[out]  width     Pointer to store frame width (pixels).
+   * @param[out]  height    Pointer to store frame height (pixels).
+   * @return 0 on success, -1 on failure (errno is set).
    */
-  void capture_destroy(CapArg *arg);
+  int raw_video_open(const char *filepath, int *fd, int *width, int *height);
+
+  /**
+   * @brief  Read one frame's worth of data from a raw video file.
+   *         If EOF is reached, rewind to the start of frame data.
+   * @param[in]   fd          File descriptor (must be positioned after header).
+   * @param[out]  buffer      Pointer to buffer of size `frame_size`.
+   * @param[in]   frame_size  Number of bytes per frame (width * height).
+   * @return 0 on success, -1 on failure (errno is set).
+   */
+  int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame);
 
 #ifdef __cplusplus
 }

@@ -2,142 +2,77 @@
 
 static void *capture_thread(void *arg)
 {
-  CapArg *ctx = (CapArg *)arg;
-  FramePool *pool = ctx->pool;
-  Queue *free_q = pool->free_q;
-  Queue *display_q = pool->display_q;
-  Queue *record_q = pool->record_q;
-  size_t seq = 0;
-  size_t size = pool->frames[0]->width * pool->frames[0]->height;
-  int fd = ctx->fd;
-  Frame *frame = NULL;
-  ssize_t n = 0;
-  size_t remaining = 0;
-  unsigned char *buf = NULL;
-
-  while (1)
+  // Open the raw video file
+  int fd = open(CAPTURE_FILE, O_RDONLY);
+  if (fd == -1)
   {
-    fprintf(stderr, "%s:%d in %s() → failed \n", __FILE__, __LINE__, __func__);
-    pthread_mutex_lock(&free_q->mutex);
+    fprintf(stderr, "%s:%d in %s() → failed to open file: %s\n", __FILE__, __LINE__, __func__,
+            CAPTURE_FILE);
+    goto thread_exit;
+  }
 
-    while (is_empty(free_q) && !free_q->done)
+  // Initialize the capture arguments
+  CaptureArgs *cap_arg = (CaptureArgs *)arg;
+  FramePool *frame_pool = cap_arg->frame_pool;
+  size_t seq = 0;
+  FrameBlock *fb = NULL;
+
+  fprintf(stderr, "%s:%d in %s() → capture thread start \n", __FILE__, __LINE__, __func__);
+
+  int num = 3;
+
+  while ((num--) > 0)
+  {
+    fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__, seq);
+
+    // Allocate a frame block from the pool
+    fb = fp_alloc(frame_pool, 2);
+    if (!fb)
     {
-      pthread_cond_wait(&free_q->cond_not_empty, &free_q->mutex);
+      fprintf(stderr, "%s:%d in %s() → failed to allocate frame block\n", __FILE__, __LINE__,
+              __func__);
+      goto thread_exit;
     }
 
-    if (is_empty(free_q) && free_q->done)
+    // read the frame data into the block
+    if (raw_video_read_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
     {
-      pthread_mutex_unlock(&free_q->mutex);
-      break;
+      fprintf(stderr, "%s:%d in %s() → failed to read frame\n", __FILE__, __LINE__, __func__);
+      goto thread_exit;
     }
 
-    frame = (Frame *)dequeue(free_q);
-    atomic_store(&frame->refcount, 2);
+    // Set the frame sequence number
+    fb->frame.seq = seq++;
 
-    buf = frame->data;
-    remaining = size;
-
-    // 한 프레임 전체를 읽을 때까지 반복
-    while (remaining > 0)
+    // queue the frame block to the display queue
+    pthread_mutex_lock(&cap_arg->display_q->mutex);
+    while (is_full(cap_arg->display_q))
     {
-      n = read(fd, buf, remaining);
-      if (n < 0)
-      {
-        perror("read");
-        // 에러 처리 (스레드 종료 or 재시도 등)
-        goto thread_exit;
-      }
-      if (n == 0)
-      {
-        // EOF → 파일 맨 앞으로 돌리고, 이 프레임 읽기를 다시 시도
-        if (lseek(fd, 0, SEEK_SET) < 0)
-        {
-          perror("lseek");
-          goto thread_exit;
-        }
-        remaining = size;
-        buf = frame->data;
-        continue;
-      }
-      buf += n;
-      remaining -= n;
+      pthread_cond_wait(&cap_arg->display_q->cond_not_full, &cap_arg->display_q->mutex);
     }
+    enqueue(cap_arg->display_q, (void *)fb);
+    pthread_cond_signal(&cap_arg->display_q->cond_not_empty);
+    pthread_mutex_unlock(&cap_arg->display_q->mutex);
 
-    frame->seq = seq++;
-
-    pthread_cond_signal(&free_q->cond_not_full);
-    pthread_mutex_unlock(&free_q->mutex);
-
-    pthread_mutex_lock(&display_q->mutex);
-    while (is_full(display_q))
+    // queue the frame block to the record queue
+    pthread_mutex_lock(&cap_arg->record_q->mutex);
+    while (is_full(cap_arg->record_q))
     {
-      pthread_cond_wait(&display_q->cond_not_full, &display_q->mutex);
+      pthread_cond_wait(&cap_arg->record_q->cond_not_full, &cap_arg->record_q->mutex);
     }
-    enqueue(display_q, (void *)frame);
-    pthread_cond_signal(&display_q->cond_not_empty);
-    pthread_mutex_unlock(&display_q->mutex);
-
-    // pthread_mutex_lock(&record_q->mutex);
-    // while (is_full(record_q))
-    // {
-    //   pthread_cond_wait(&record_q->cond_not_full, &record_q->mutex);
-    // }
-    // enqueue(record_q, (void *)frame);
-    // pthread_cond_signal(&record_q->cond_not_empty);
-    // pthread_mutex_unlock(&record_q->mutex);
-
-    usleep(33000);
+    enqueue(cap_arg->record_q, (void *)fb);
+    pthread_cond_signal(&cap_arg->record_q->cond_not_empty);
+    pthread_mutex_unlock(&cap_arg->record_q->mutex);
   }
 
 thread_exit:
+  close(fd);
   return NULL;
 }
 
-CapArg *capture_init(const char *filename, size_t pool_size, size_t width, size_t height,
-                     DEPTH depth)
+bool capture_run(CaptureArgs *arg, pthread_t *tid)
 {
-  CapArg *arg = (CapArg *)calloc(1, sizeof(CapArg));
-  if (!arg)
-  {
-    fprintf(stderr, "%s:%d in %s() → failed to allocate CapArg\n", __FILE__, __LINE__,
-            __func__);
-    return false;
-  }
-
-  arg->fd = open(filename, O_RDONLY);
-  if (arg->fd == -1)
-  {
-    fprintf(stderr, "%s:%d in %s() → failed to open file: %s\n", __FILE__, __LINE__, __func__,
-            filename);
-    goto FAIL;
-  }
-
-  arg->pool = frame_pool_create(pool_size, width, height, depth);
-  if (!arg->pool)
-  {
-    fprintf(stderr, "%s:%d in %s() → failed to create frame pool\n", __FILE__, __LINE__, __func__);
-    goto FAIL;
-  }
-
-  arg->run = true;
-
-  return arg;
-
-FAIL:
-  if (arg->pool)
-    frame_pool_destroy(arg->pool);
-  if (arg->fd != -1)
-    close(arg->fd);
-  if (arg)
-    free(arg);
-    arg = NULL;
-  return NULL;
-}
-
-bool capture_run(CapArg *arg)
-{
-
-  if (pthread_create(&arg->tid, NULL, capture_thread, (void *)arg) != 0)
+  if (pthread_create(tid, NULL, capture_thread, (void *)arg) != 0)
   {
     perror("pthread_create");
     return false;
@@ -146,10 +81,89 @@ bool capture_run(CapArg *arg)
   return true;
 }
 
-void capture_destroy(CapArg *arg)
+int raw_video_open(const char *filepath, int *fd, int *width, int *height)
 {
-  frame_pool_destroy(arg->pool);
-  close(arg->fd);
-  free(arg);
-  arg = NULL;
+  int ret = -1;
+  int local_fd = -1;
+  ssize_t n;
+
+  /* Open file for reading */
+  local_fd = open(filepath, O_RDONLY);
+  if (local_fd < 0)
+  {
+    perror("raw_video_open: open");
+    goto cleanup;
+  }
+
+  /* Read frame width */
+  n = read(local_fd, width, sizeof(*width));
+  if (n != sizeof(*width))
+  {
+    if (n < 0)
+      perror("raw_video_open: read width");
+    else
+      fprintf(stderr, "raw_video_open: unexpected EOF reading width\n");
+    goto cleanup;
+  }
+
+  /* Read frame height */
+  n = read(local_fd, height, sizeof(*height));
+  if (n != sizeof(*height))
+  {
+    if (n < 0)
+      perror("raw_video_open: read height");
+    else
+      fprintf(stderr, "raw_video_open: unexpected EOF reading height\n");
+    goto cleanup;
+  }
+
+  /* Success: hand back fd */
+  *fd = local_fd;
+  local_fd = -1;
+  ret = 0;
+
+cleanup:
+  if (local_fd >= 0)
+    close(local_fd);
+  return ret;
+}
+
+int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame)
+{
+  size_t remaining = total_bytes_per_frame;
+  unsigned char *ptr = (unsigned char *)buffer;
+  ssize_t n;
+
+  while (remaining > 0)
+  {
+    n = read(fd, ptr, remaining);
+    if (n < 0)
+    {
+      if (errno == EINTR)
+        continue; /* interrupted, retry */
+      perror("raw_video_read_frame: read");
+      return -1;
+    }
+    if (n == 0)
+    {
+      // /* EOF → rewind past header (2 ints) */
+      // if (lseek(fd, 2 * sizeof(int), SEEK_SET) < 0)
+      // {
+      //   perror("raw_video_read_frame: lseek");
+      //   return -1;
+      // }
+
+      /* EOF → rewind past */
+      if (lseek(fd, 0, SEEK_SET) < 0)
+      {
+        perror("raw_video_read_frame: lseek");
+        return -1;
+      }
+      continue;
+    }
+    ptr += n;
+    remaining -= n;
+  }
+
+  return 0;
 }
