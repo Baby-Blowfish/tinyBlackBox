@@ -1,3 +1,10 @@
+/*
+ * @file frame.h
+ * @brief Generic Frame structure and operations
+ *
+ * Provides dynamic allocation, initialization, destruction, pixel data access,
+ * and blocking I/O functions for arbitrary-depth frames.
+ */
 #ifndef FRAME_H
 #define FRAME_H
 
@@ -11,6 +18,10 @@ extern "C"
 #include <stdlib.h>
 #include <unistd.h>
 
+  /**
+   * @enum FrameDepth
+   * @brief Defines bytes per pixel for a Frame.
+   */
   typedef enum
   {
     GRAY = 1,
@@ -19,124 +30,137 @@ extern "C"
   } DEPTH;
 
   /**
-   * @brief   범용 Frame 구조체.
-   * @note    depth만큼의 바이트를 pixel data로 사용합니다.
+   * @struct Frame
+   * @brief Represents a pixel frame with metadata and data buffer.
    */
   typedef struct Frame
   {
-    size_t width;  // 가로 해상도 (px)
-    size_t height; // 세로 해상도 (px)
-    DEPTH depth;   // 픽셀당 바이트 수 (ex: 1=GRAY, 3=RGB)
-    size_t seq;    // 시퀀스 번호
-    void *data;    // 픽셀 데이터 (width * height * depth 바이트)
+    size_t width;  /**< Frame width in pixels (>0) */
+    size_t height; /**< Frame height in pixels (>0) */
+    DEPTH depth;   /**< Bytes per pixel (>0) */
+    size_t seq;    /**< Sequence number, starts at 0 */
+    void *data;    /**< Pixel buffer of size width*height*depth bytes */
   } Frame;
 
   /**
-   * @brief   새 Frame 객체를 동적 할당하고 초기화합니다. (Owning)
-   * @param   width   [in] 가로 해상도 (px, >0)
-   * @param   height  [in] 세로 해상도 (px, >0)
-   * @param   depth   [in] 픽셀당 바이트 수 (>0)
-   * @return  성공 시 Frame* (NULL on failure; errno 설정)
+   * @brief Allocate a new Frame and internal buffer.
+   *
+   * Allocates a Frame structure and zero-initializes its data buffer.
+   * @param[in] width  Width in pixels (>0).
+   * @param[in] height Height in pixels (>0).
+   * @param[in] depth  Bytes per pixel (>0).
+   * @return Non-NULL pointer to Frame on success; NULL on failure (errno set).
+   * @retval NULL     Memory allocation or invalid parameters.
+   * @retval otherwise Allocated Frame (use frame_destroy() to free).
    */
   Frame *frame_create(size_t width, size_t height, DEPTH depth);
 
   /**
-   * @brief   동적 할당된 Frame 객체와 내부 버퍼를 모두 해제합니다.
-   * @param   frame   [in] 해제할 Frame 포인터 (NULL safe)
+   * @brief Free a Frame and its internal buffer.
+   *
+   * Safely handles NULL.
+   * @param[in,out] frame Pointer to Frame to destroy.
    */
   void frame_destroy(Frame *frame);
 
   /**
-   * @brief   Frame 내부 데이터를 초기화하고 버퍼를 할당합니다.
-   * @param   frame   [out] 초기화할 Frame 포인터 (NULL 불가)
-   * @param   width   [in]  가로 해상도 (px, >0)
-   * @param   height  [in]  세로 해상도 (px, >0)
-   * @param   depth   [in]  픽셀당 바이트 수 (>0)
-   * @return  0: 성공, -1: 실패 (errno 설정)
-   * @note    실패 원인:
-   *          - errno = EINVAL: frame==NULL || width==0 || height==0
-   *          - errno = EOVERFLOW: width * height overflow
-   *          - errno = ENOMEM: 메모리 할당 실패
+   * @brief Initialize an existing Frame structure.
+   *
+   * Allocates and zero-initializes the data buffer.
+   * @param[in,out] frame Pointer to pre-allocated Frame (>NULL).
+   * @param[in] width     Width in pixels (>0).
+   * @param[in] height    Height in pixels (>0).
+   * @param[in] depth     Bytes per pixel (>0).
+   * @return 0 on success; -1 on failure (errno set).
+   * @retval -1   frame==NULL or width/height/depth invalid or overflow or ENOMEM.
+   * @retval 0    Frame initialized (data malloc'ed).
    */
   int frame_init(Frame *frame, size_t width, size_t height, DEPTH depth);
 
   /**
-   * @brief   frame_init()으로 할당된 내부 버퍼를 해제합니다.
-   * @param   frame   [in] 초기화된 Frame 포인터 (NULL safe)
+   * @brief Release only the data buffer of a Frame.
+   *
+   * Does not free the Frame struct itself.
+   * @param[in,out] frame Pointer to Frame with initialized data (NULL safe).
    */
   void frame_free(Frame *frame);
 
   /**
-   * @brief   Frame의 픽셀 데이터 버퍼를 반환합니다. (쓰기 가능)
-   * @param   frame   [in] Frame 포인터
-   * @return  void* (NULL 허용)
+   * @brief Get writable pixel buffer.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Pointer to data or NULL.
    */
   void *frame_get_data(Frame *frame);
 
   /**
-   * @brief   Frame의 픽셀 데이터 버퍼를 반환합니다. (읽기 전용)
-   * @param   frame   [in] Frame 포인터
-   * @return  const void* (NULL 허용)
+   * @brief Get read-only pixel buffer.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Const pointer to data or NULL.
    */
   const void *frame_get_data_const(const Frame *frame);
 
   /**
-   * @brief   Frame의 가로 해상도(px)를 반환합니다.
-   * @param   frame   [in] Frame 포인터
-   * @return  가로 해상도 (frame이 NULL이면 0)
+   * @brief Retrieve frame width.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Width in pixels; 0 if frame NULL.
    */
   size_t frame_get_width(const Frame *frame);
 
   /**
-   * @brief   Frame의 세로 해상도(px)를 반환합니다.
-   * @param   frame   [in] Frame 포인터
-   * @return  세로 해상도 (frame이 NULL이면 0)
+   * @brief Retrieve frame height.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Height in pixels; 0 if frame NULL.
    */
   size_t frame_get_height(const Frame *frame);
 
   /**
-   * @brief   Frame의 픽셀당 바이트 수(depth) 반환합니다.
+   * @brief Retrieve pixel depth.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Bytes per pixel; 0 if frame NULL.
    */
   DEPTH frame_get_depth(const Frame *frame);
 
   /**
-   * @brief   Frame의 시퀸스 번호를 반환합니다.
-   * @param   frame   [in] Frame 포인터
-   * @return  시퀸스 번호 (frame이 NULL이면 0)
+   * @brief Retrieve sequence number.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @return Sequence; 0 if frame NULL.
    */
   size_t frame_get_seq(const Frame *frame);
 
   /**
-   * @brief   Frame 구조체 정보를 출력합니다.
-   * @param   frame   [in] Frame 포인터 (NULL 허용)
-   * @param   out     [in] 출력 스트림 (NULL이면 stdout 사용)
+   * @brief Print frame metadata.
+   * @param[in] frame Frame pointer (NULL safe).
+   * @param[in] out   FILE stream; defaults to stdout if NULL.
    */
   void frame_dump_info(const Frame *frame, FILE *out);
 
   /**
-   * @brief Frame의 픽셀 데이터만 파일 디스크립터에 저장합니다.
-   * @param fd      [in] 파일 디스크립터 (쓰기 가능)
-   * @param frame   [in] Frame 포인터 (width, height, data 필요)
-   * @return >=0: 실제 쓴 바이트 수, -1: 실패 (errno 설정)
+   * @brief Write only pixel data to file descriptor (blocking).
+   *
+   * Handles partial writes internally (EINTR retry).
+   * @param[in] fd    Writable file descriptor.
+   * @param[in] frame Frame with data pointer set.
+   * @return Bytes written; -1 on error (errno set).
    */
   ssize_t frame_write_data(int fd, const Frame *frame);
 
   /**
-   * @brief 파일 디스크립터에서 픽셀 데이터만 읽어 Frame에 채웁니다.
-   * @param fd      [in] 파일 디스크립터 (읽기 가능)
-   * @param frame   [out] Frame 포인터 (이미 width, height, data 초기화됨)
-   * @return >=0: 실제 읽은 바이트 수, -1: 실패 (errno 설정)
-   * @note    반드시 frame_gray_init() 또는 frame_gray_create() 이후 호출해야 함
+   * @brief Read pixel data from file descriptor into frame (one-shot).
+   *
+   * Attempts to read exactly width*height*depth bytes; fails if EOF encountered early.
+   * @param[in]  fd    Readable file descriptor.
+   * @param[out] frame Initialized Frame with data buffer.
+   * @return Bytes read; -1 on error or incomplete read (errno set).
    */
   ssize_t frame_read_data(int fd, Frame *frame);
 
   /**
-   * @brief   Frame의 픽셀 데이터를 파일 디스크립터에서 읽습니다. (EOF 시 자동으로
-   * 처음부터 다시 읽기)
-   * @param   fd      [in] 파일 디스크립터 (읽기 가능)
-   * @param   frame   [out] 이미 width, height가 초기화된 Frame 포인터
-   * @return  >=0: 실제 읽은 바이트 수, -1: 실패 (errno 설정)
-   * @note    EOF에 도달하면 lseek으로 다시 처음부터 읽기를 시도합니다.
+   * @brief Continuously read pixel data; rewind on EOF.
+   *
+   * Loops until frame buffer is full, seeking to start on EOF.
+   * @param[in]  fd    Readable file descriptor.
+   * @param[out] frame Initialized Frame.
+   * @return Bytes read; -1 on error (errno set).
    */
   ssize_t frame_read_loop(int fd, Frame *frame);
 

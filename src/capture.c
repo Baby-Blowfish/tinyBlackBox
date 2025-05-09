@@ -1,5 +1,17 @@
+/*
+ * @file capture.c
+ * @brief Capture thread implementation and raw video I/O in DoxyZen style.
+ */
 #include "capture.h"
 
+/**
+ * @brief Thread function for reading frames and dispatching to consumers.
+ *
+ * Reads raw frames from file, handles wrap-around, sets sequence numbers,
+ * and enqueues to display and record queues.
+ * @param[in] arg Pointer to SharedCtx containing queues, pool, and UI args.
+ * @return NULL on thread exit.
+ */
 static void *capture_thread(void *arg)
 {
   // Open the raw video file
@@ -18,19 +30,17 @@ static void *capture_thread(void *arg)
   FrameBlock *fb = NULL;
   int wrapped = 0;
 
+  /* Notify UI of input FD */
   pthread_mutex_lock(&cap_arg->ui_arg->mutex);
   cap_arg->ui_arg->fds[1] = fd;
   pthread_mutex_unlock(&cap_arg->ui_arg->mutex);
 
   fprintf(stderr, "%s:%d in %s() → capture thread start \n", __FILE__, __LINE__, __func__);
 
-  // int num = 200;
-
-  // while ((num--) > 0)
-  // {
+  /* Main capture loop */
   while (1)
   {
-
+    /* Wait for RUN state */
     pthread_mutex_lock(&cap_arg->ui_arg->mutex);
 
     while (cap_arg->ui_arg->state == STATE_STOPPED)
@@ -45,9 +55,6 @@ static void *capture_thread(void *arg)
 
     pthread_mutex_unlock(&cap_arg->ui_arg->mutex);
 
-    // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__,
-    // seq);
-
     // Allocate a frame block from the pool
     fb = fp_alloc(frame_pool, 2);
     if (!fb)
@@ -57,7 +64,7 @@ static void *capture_thread(void *arg)
       goto thread_exit;
     }
 
-    // read the frame data into the block
+    // read the frame data into the block (returns 1 on wrap)
     if ((wrapped = raw_video_read_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame)) < 0)
     {
       fprintf(stderr, "%s:%d in %s() → failed to read frame\n", __FILE__, __LINE__, __func__);
@@ -70,10 +77,10 @@ static void *capture_thread(void *arg)
       sem_post(&cap_arg->wrap_sem);
     }
 
-    // Set the frame sequence number
+    /* Assign sequence */
     fb->frame.seq = seq++;
 
-    // queue the frame block to the display queue
+    /* Enqueue to display */
     pthread_mutex_lock(&cap_arg->display_q->mutex);
     while (is_full(cap_arg->display_q))
     {
@@ -83,7 +90,7 @@ static void *capture_thread(void *arg)
     pthread_cond_signal(&cap_arg->display_q->cond_not_empty);
     pthread_mutex_unlock(&cap_arg->display_q->mutex);
 
-    // queue the frame block to the record queue
+    /* Enqueue to record */
     pthread_mutex_lock(&cap_arg->record_q->mutex);
     while (is_full(cap_arg->record_q))
     {

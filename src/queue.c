@@ -42,12 +42,12 @@ void queue_destroy(Queue *queue)
   pthread_cond_destroy(&queue->cond_not_empty);
 }
 
-int is_empty(Queue *queue)
+int is_empty(const Queue *queue)
 {
   return queue->count == 0;
 }
 
-int is_full(Queue *queue)
+int is_full(const Queue *queue)
 {
   return queue->count == queue->capacity;
 }

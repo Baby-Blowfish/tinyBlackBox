@@ -1,3 +1,7 @@
+/*
+ * @file display.h
+ * @brief Display thread and framebuffer overlay functions in DoxyZen style.
+ */
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
@@ -15,14 +19,16 @@ extern "C"
 #include "console_color.h"
 #include "fbDraw.h"
 #include "thread_arg.h"
-#define FRAME_INTERVAL_US 33000 // 33ms
-#define MENU_COUNT 3
+#define FRAME_INTERVAL_US 33000 /**< Delay between frames in microseconds (33ms) */
+#define MENU_COUNT 3            /**< Number of UI menu items */
 
   /**
-   * @brief   display 쓰레드를 실행합니다.
-   * @param   arg [in]  display 인자 구조체 포인터
-   * @param   tid [out] display 쓰레드 ID
-   * @return  true: 성공, false: 실패
+   * @brief Launch the display thread.
+   *
+   * Spawns a pthread to handle framebuffer drawing and UI overlay.
+   * @param[in] arg SharedCtx pointer containing display context and queues.
+   * @param[out] tid Pointer to pthread_t to store created thread ID.
+   * @return true on success; false on failure.
    */
   bool display_run(SharedCtx *arg, pthread_t *tid);
 

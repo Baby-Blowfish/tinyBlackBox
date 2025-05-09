@@ -1,4 +1,7 @@
-
+/*
+ * @file main.c
+ * @brief Application entry: setup threads and shared resources.
+ */
 #include "capture.h"
 #include "display.h"
 #include "record.h"
@@ -19,16 +22,18 @@ int main(void)
     return EXIT_FAILURE;
   }
 
+  /* Open input/output raw files */
   sh_ctx->fd_in = open("in.raw", O_RDONLY);
   sh_ctx->fd_out = open("out.raw", O_RDWR | O_CREAT, 0666);
 
-  // 세마포어 초기화 (0으로 시작)
+  /* Init wrap semaphore */
   if (sem_init(&sh_ctx->wrap_sem, 0, 0) < 0)
   {
     perror("sem_init");
     return EXIT_FAILURE;
   }
 
+  /* Create queues and pool */
   sh_ctx->display_q = queue_init(QUEUE_SIZE);
   sh_ctx->record_q = queue_init(QUEUE_SIZE);
   if (sh_ctx->display_q == NULL || sh_ctx->record_q == NULL)
@@ -46,6 +51,7 @@ int main(void)
     return EXIT_FAILURE;
   }
 
+  /* Start UI thread */
   if (ui_run(&sh_ctx->ui_arg, &ui_thread) == false)
   {
     return EXIT_FAILURE;
@@ -54,6 +60,7 @@ int main(void)
   usleep(1000); // 1초 대기
   // UI Thread가 초기화될 때까지 대기
 
+  /* Start worker threads */
   if (capture_run(sh_ctx, &capture_thread) == false)
   {
     return EXIT_FAILURE;
@@ -69,7 +76,7 @@ int main(void)
     return EXIT_FAILURE;
   }
 
-  // Wait for the capture thread to finish
+  /* Join and cleanup */
   pthread_join(capture_thread, NULL);
   pthread_join(record_thread, NULL);
   pthread_join(display_thread, NULL);

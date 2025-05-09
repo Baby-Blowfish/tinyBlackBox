@@ -1,12 +1,15 @@
-// thread_args.h
+/*
+ * @file thread_arg.h
+ * @brief Shared context for capture, display, record threads
+ */
 #ifndef THREAD_ARGS_H
 #define THREAD_ARGS_H
 
 #include <semaphore.h>
 
 #include "frame_pool.h"
-#include "queue.h" // Queue 타입 정의
-#include "ui.h"    // UiArgs 타입 정의
+#include "queue.h"
+#include "ui.h"
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -16,6 +19,12 @@
 #define CAPTURE_FILE "data/cap/video1.raw"
 #define RECORD_FILE "data/rec/video1_rec.raw"
 
+/**
+ * @struct SharedCtx
+ * @brief Holds shared arguments for capture, display, and record threads.
+ *
+ * Includes raw video fds, wrap semaphore, frame queues, frame pool, and UI context.
+ */
 typedef struct
 {
   int fd_in;

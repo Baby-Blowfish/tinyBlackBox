@@ -1,5 +1,17 @@
+/*
+ * @file record.c
+ * @brief Record thread and frame writing implementation.
+ */
 #include "record.h"
 
+/**
+ * @brief Thread function for dequeuing and writing frames.
+ *
+ * Dequeues blocks, handles wrap semaphores, writes raw frames,
+ * and releases blocks back to pool.
+ * @param[in] arg Pointer to SharedCtx.
+ * @return NULL on thread exit.
+ */
 static void *record_thread(void *arg)
 {
 
@@ -22,13 +34,36 @@ static void *record_thread(void *arg)
 
   fprintf(stderr, "%s:%d in %s() → record thread start \n", __FILE__, __LINE__, __func__);
 
-  // int num = 200;
-  // size_t seq = 0;
-
-  // while ((num--) > 0)
-  // {
   while (1)
   {
+    /* Dequeue block */
+    pthread_mutex_lock(&rec_arg->record_q->mutex);
+    while (is_empty(rec_arg->record_q))
+    {
+      pthread_cond_wait(&rec_arg->record_q->cond_not_empty, &rec_arg->record_q->mutex);
+    }
+    fb = dequeue(rec_arg->record_q);
+    pthread_cond_signal(&rec_arg->record_q->cond_not_full);
+    pthread_mutex_unlock(&rec_arg->record_q->mutex);
+
+    /* Handle wrap semaphores */
+    while (sem_trywait(&rec_arg->wrap_sem) == 0)
+    {
+      if (lseek(fd, 0, SEEK_SET) < 0)
+      {
+        perror("record: lseek rewind");
+        break;
+      }
+    }
+
+    /* Write frame */
+    if (raw_video_write_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
+    {
+      fprintf(stderr, "%s:%d in %s() → failed to write frame\n", __FILE__, __LINE__, __func__);
+      goto thread_exit;
+    }
+
+     /* Wait if stopped */
     pthread_mutex_lock(&rec_arg->ui_arg->mutex);
 
     while (rec_arg->ui_arg->state == STATE_STOPPED)
@@ -43,34 +78,6 @@ static void *record_thread(void *arg)
     }
 
     pthread_mutex_unlock(&rec_arg->ui_arg->mutex);
-
-    // fprintf(stderr, "%s:%d in %s() → record thread seq = %ld \n", __FILE__, __LINE__, __func__,
-    // seq++); queue the frame block to the record queue
-    pthread_mutex_lock(&rec_arg->record_q->mutex);
-    while (is_empty(rec_arg->record_q))
-    {
-      pthread_cond_wait(&rec_arg->record_q->cond_not_empty, &rec_arg->record_q->mutex);
-    }
-    fb = dequeue(rec_arg->record_q);
-    pthread_cond_signal(&rec_arg->record_q->cond_not_full);
-    pthread_mutex_unlock(&rec_arg->record_q->mutex);
-
-    // 랩 신호가 왔으면 파일 포인터를 처음으로로
-    while (sem_trywait(&rec_arg->wrap_sem) == 0)
-    {
-      if (lseek(fd, 0, SEEK_SET) < 0)
-      {
-        perror("record: lseek rewind");
-        break;
-      }
-    }
-
-    // read the frame data into the block
-    if (raw_video_write_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
-    {
-      fprintf(stderr, "%s:%d in %s() → failed to write frame\n", __FILE__, __LINE__, __func__);
-      goto thread_exit;
-    }
 
     // release the frame block
     fp_release(frame_pool, fb);

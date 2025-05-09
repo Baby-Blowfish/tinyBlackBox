@@ -1,3 +1,8 @@
+
+/*
+ * @file capture.h
+ * @brief Video capture thread and raw frame reading functions
+ */
 #ifndef CAPTURE_H
 #define CAPTURE_H
 
@@ -19,30 +24,29 @@ extern "C"
 #include "thread_arg.h"
 
   /**
-   * @brief   캡처 쓰레드를 실행합니다.
-   * @param   arg [in] 캡처 인자 구조체 포인터
-   * @param   tid [out] 캡처 쓰레드 ID
-   * @return  true: 성공, false: 실패
+   * @brief Start the capture thread.
+   * @param[in] arg Shared context pointer.
+   * @param[out] tid Thread identifier output.
+   * @return true if thread created; false on error.
    */
   bool capture_run(SharedCtx *arg, pthread_t *tid);
 
   /**
-   * @brief  Open a raw video file and read its width and height.
-   * @param[in]   filepath  Path to the raw video file.
-   * @param[out]  fd        Pointer to store opened file descriptor.
-   * @param[out]  width     Pointer to store frame width (pixels).
-   * @param[out]  height    Pointer to store frame height (pixels).
-   * @return 0 on success, -1 on failure (errno is set).
+   * @brief Open raw video file and read header dimensions.
+   * @param[in] filepath Path to raw video file.
+   * @param[out] fd Output file descriptor.
+   * @param[out] width Frame width in pixels.
+   * @param[out] height Frame height in pixels.
+   * @return 0 on success; -1 on failure (errno set).
    */
   int raw_video_open(const char *filepath, int *fd, int *width, int *height);
 
   /**
-   * @brief  Read one frame's worth of data from a raw video file.
-   *         If EOF is reached, rewind to the start of frame data.
-   * @param[in]   fd          File descriptor (must be positioned after header).
-   * @param[out]  buffer      Pointer to buffer of size `frame_size`.
-   * @param[in]   frame_size  Number of bytes per frame (width * height).
-   * @return 0 on success, -1 on failure (errno is set), 1 on Wraparound.
+   * @brief Read one frame's data from raw video file, rewind on EOF.
+   * @param[in] fd File descriptor (after header).
+   * @param[out] buffer Buffer sized total_bytes_per_frame.
+   * @param[in] total_bytes_per_frame Bytes per frame.
+   * @return 0 on success; 1 on wraparound (EOF); -1 on error (errno set).
    */
   int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame);
 
