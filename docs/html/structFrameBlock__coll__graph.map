@@ -1,0 +1,4 @@
+<map id="FrameBlock" name="FrameBlock">
+<area shape="rect" id="node1" title="Holds a Frame and atomic reference count for pooling." alt="" coords="5,95,104,121"/>
+<area shape="rect" id="node2" href="$structFrame.html" title="Represents a pixel frame with metadata and data buffer." alt="" coords="23,5,86,32"/>
+</map>

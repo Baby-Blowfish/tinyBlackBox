@@ -1,0 +1,4 @@
+<map id="TaskQueue" name="TaskQueue">
+<area shape="rect" id="node1" title="Structure representing a task queue." alt="" coords="5,95,99,121"/>
+<area shape="rect" id="node2" href="$structTask.html" title="Structure representing a task to be processed." alt="" coords="27,5,77,32"/>
+</map>

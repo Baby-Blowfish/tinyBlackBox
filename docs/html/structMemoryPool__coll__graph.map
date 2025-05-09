@@ -1,0 +1,4 @@
+<map id="MemoryPool" name="MemoryPool">
+<area shape="rect" id="node1" title="메모리 풀 구조체" alt="" coords="9,109,113,136"/>
+<area shape="rect" id="node2" href="$structMemoryBlock.html" title="메모리 풀 블록 구조체" alt="" coords="5,5,117,32"/>
+</map>

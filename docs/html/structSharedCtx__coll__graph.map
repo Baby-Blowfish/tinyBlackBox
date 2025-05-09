@@ -1,0 +1,8 @@
+<map id="SharedCtx" name="SharedCtx">
+<area shape="rect" id="node1" title="Holds shared arguments for capture, display, and record threads." alt="" coords="119,303,209,329"/>
+<area shape="rect" id="node2" href="$structFramePool.html" title="Manages a fixed array of FrameBlocks with free&#45;list." alt="" coords="9,199,100,225"/>
+<area shape="rect" id="node3" href="$structFrameBlock.html" title="Holds a Frame and atomic reference count for pooling." alt="" coords="5,95,104,121"/>
+<area shape="rect" id="node4" href="$structFrame.html" title="Represents a pixel frame with metadata and data buffer." alt="" coords="23,5,86,32"/>
+<area shape="rect" id="node5" href="$structUiArgs.html" title="Context and synchronization primitives for the UI thread." alt="" coords="131,199,197,225"/>
+<area shape="rect" id="node6" href="$structQueue.html" title="Thread&#45;safe fixed&#45;capacity FIFO queue." alt="" coords="221,199,285,225"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="FramePool" name="FramePool">
+<area shape="rect" id="node1" title="Manages a fixed array of FrameBlocks with free&#45;list." alt="" coords="9,199,100,225"/>
+<area shape="rect" id="node2" href="$structFrameBlock.html" title="Holds a Frame and atomic reference count for pooling." alt="" coords="5,95,104,121"/>
+<area shape="rect" id="node3" href="$structFrame.html" title="Represents a pixel frame with metadata and data buffer." alt="" coords="23,5,86,32"/>
+</map>
