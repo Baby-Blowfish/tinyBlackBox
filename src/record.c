@@ -16,6 +16,10 @@ static void *record_thread(void *arg)
   FramePool *frame_pool = rec_arg->frame_pool;
   FrameBlock *fb = NULL;
 
+  pthread_mutex_lock(&rec_arg->ui_arg->mutex);
+  rec_arg->ui_arg->fds[0] = fd;
+  pthread_mutex_unlock(&rec_arg->ui_arg->mutex);
+
   fprintf(stderr, "%s:%d in %s() → record thread start \n", __FILE__, __LINE__, __func__);
 
   // int num = 200;
@@ -25,6 +29,13 @@ static void *record_thread(void *arg)
   // {
   while (1)
   {
+    pthread_mutex_lock(&rec_arg->ui_arg->mutex);
+    while (rec_arg->ui_arg->state != STATE_RUNNING)
+    {
+      pthread_cond_wait(&rec_arg->ui_arg->cond, &rec_arg->ui_arg->mutex);
+    }
+    pthread_mutex_unlock(&rec_arg->ui_arg->mutex);
+
     // fprintf(stderr, "%s:%d in %s() → record thread seq = %ld \n", __FILE__, __LINE__, __func__,
     // seq++); queue the frame block to the record queue
     pthread_mutex_lock(&rec_arg->record_q->mutex);
@@ -37,11 +48,13 @@ static void *record_thread(void *arg)
     pthread_mutex_unlock(&rec_arg->record_q->mutex);
 
     // 랩 신호가 왔으면 파일 포인터를 처음으로로
-    while (sem_trywait(&rec_arg->wrap_sem) == 0) {
-        if (lseek(fd, 0, SEEK_SET) < 0) {
-            perror("record: lseek rewind");
-            break;
-        }
+    while (sem_trywait(&rec_arg->wrap_sem) == 0)
+    {
+      if (lseek(fd, 0, SEEK_SET) < 0)
+      {
+        perror("record: lseek rewind");
+        break;
+      }
     }
 
     // read the frame data into the block

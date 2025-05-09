@@ -16,6 +16,7 @@ extern "C"
 #include "fbDraw.h"
 #include "thread_arg.h"
 #define FRAME_INTERVAL_US 33000 // 33ms
+#define MENU_COUNT 3
 
   /**
    * @brief   display 쓰레드를 실행합니다.

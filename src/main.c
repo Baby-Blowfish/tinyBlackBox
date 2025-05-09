@@ -9,6 +9,7 @@ int main(void)
   pthread_t capture_thread;
   pthread_t display_thread;
   pthread_t record_thread;
+  pthread_t ui_thread;
 
   SharedCtx *sh_ctx = malloc(sizeof(SharedCtx));
   if (sh_ctx == NULL)
@@ -45,6 +46,14 @@ int main(void)
     return EXIT_FAILURE;
   }
 
+  if (ui_run(&sh_ctx->ui_arg, &ui_thread) == false)
+  {
+    return EXIT_FAILURE;
+  }
+
+  usleep(1000); // 1초 대기
+  // UI Thread가 초기화될 때까지 대기
+
   if (capture_run(sh_ctx, &capture_thread) == false)
   {
     return EXIT_FAILURE;
@@ -64,6 +73,7 @@ int main(void)
   pthread_join(capture_thread, NULL);
   pthread_join(record_thread, NULL);
   pthread_join(display_thread, NULL);
+  pthread_join(ui_thread, NULL);
 
   queue_destroy(sh_ctx->display_q);
   queue_destroy(sh_ctx->record_q);

@@ -6,6 +6,7 @@
 
 #include "frame_pool.h"
 #include "queue.h" // Queue 타입 정의
+#include "ui.h"    // UiArgs 타입 정의
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -23,6 +24,7 @@ typedef struct
   Queue *display_q;
   Queue *record_q;
   FramePool *frame_pool;
+  UiArgs *ui_arg; // UI Thread와의 상호작용을 위한 포인터
 } SharedCtx;
 
 #endif // THREAD_ARGS_H

@@ -18,6 +18,10 @@ static void *capture_thread(void *arg)
   FrameBlock *fb = NULL;
   int wrapped = 0;
 
+  pthread_mutex_lock(&cap_arg->ui_arg->mutex);
+  cap_arg->ui_arg->fds[1] = fd;
+  pthread_mutex_unlock(&cap_arg->ui_arg->mutex);
+
   fprintf(stderr, "%s:%d in %s() → capture thread start \n", __FILE__, __LINE__, __func__);
 
   // int num = 200;
@@ -26,6 +30,14 @@ static void *capture_thread(void *arg)
   // {
   while (1)
   {
+
+    pthread_mutex_lock(&cap_arg->ui_arg->mutex);
+    while (cap_arg->ui_arg->state != STATE_RUNNING)
+    {
+      pthread_cond_wait(&cap_arg->ui_arg->cond, &cap_arg->ui_arg->mutex);
+    }
+    pthread_mutex_unlock(&cap_arg->ui_arg->mutex);
+
     // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__,
     // seq);
 
