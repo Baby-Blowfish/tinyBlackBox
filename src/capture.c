@@ -16,6 +16,7 @@ static void *capture_thread(void *arg)
   FramePool *frame_pool = cap_arg->frame_pool;
   size_t seq = 0;
   FrameBlock *fb = NULL;
+  int wrapped = 0;
 
   fprintf(stderr, "%s:%d in %s() → capture thread start \n", __FILE__, __LINE__, __func__);
 
@@ -43,8 +44,11 @@ static void *capture_thread(void *arg)
       fprintf(stderr, "%s:%d in %s() → failed to read frame\n", __FILE__, __LINE__, __func__);
       goto thread_exit;
     }
-    else if (wrapped == 1)
+    else if (wrapped == 1) // EOF reached
     {
+      // fprintf(stderr, "%s:%d in %s() → EOF reached\n", __FILE__, __LINE__, __func__);
+      // rewind the file offset to the beginning
+      sem_post(&cap_arg->wrap_sem);
     }
 
     // Set the frame sequence number
@@ -139,6 +143,7 @@ int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame)
   size_t remaining = total_bytes_per_frame;
   unsigned char *ptr = (unsigned char *)buffer;
   ssize_t n;
+  int wrapped = 0;
 
   while (remaining > 0)
   {
@@ -165,11 +170,12 @@ int raw_video_read_frame(int fd, void *buffer, size_t total_bytes_per_frame)
         perror("raw_video_read_frame: lseek");
         return -1;
       }
+      wrapped = 1;
       continue;
     }
     ptr += n;
     remaining -= n;
   }
 
-  return 0;
+  return wrapped;
 }

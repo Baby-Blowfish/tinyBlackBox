@@ -36,8 +36,16 @@ static void *record_thread(void *arg)
     pthread_cond_signal(&rec_arg->record_q->cond_not_full);
     pthread_mutex_unlock(&rec_arg->record_q->mutex);
 
+    // 랩 신호가 왔으면 파일 포인터를 처음으로로
+    while (sem_trywait(&rec_arg->wrap_sem) == 0) {
+        if (lseek(fd, 0, SEEK_SET) < 0) {
+            perror("record: lseek rewind");
+            break;
+        }
+    }
+
     // read the frame data into the block
-    if (raw_video_writer_write_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
+    if (raw_video_write_frame(fd, fb->frame.data, frame_pool->total_bytes_per_frame) < 0)
     {
       fprintf(stderr, "%s:%d in %s() → failed to write frame\n", __FILE__, __LINE__, __func__);
       goto thread_exit;
