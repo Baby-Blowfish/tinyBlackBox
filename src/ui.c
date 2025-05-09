@@ -77,7 +77,7 @@ static void *ui_thread_func(void *arg)
   }
 
 exit:
-  sleep(1); // Give some time for the exit message to be printed
+  sleep(3); // Give some time for the exit message to be printed
   ui_thread_cleanup(ui_arg);
   return NULL;
 }

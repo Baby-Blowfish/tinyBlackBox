@@ -30,10 +30,18 @@ static void *record_thread(void *arg)
   while (1)
   {
     pthread_mutex_lock(&rec_arg->ui_arg->mutex);
-    while (rec_arg->ui_arg->state != STATE_RUNNING)
+
+    while (rec_arg->ui_arg->state == STATE_STOPPED)
     {
       pthread_cond_wait(&rec_arg->ui_arg->cond, &rec_arg->ui_arg->mutex);
     }
+    if (rec_arg->ui_arg->state == STATE_EXIT)
+    {
+
+      fprintf(stderr, "%s:%d in %s() → record thread exit\n", __FILE__, __LINE__, __func__);
+      goto thread_exit;
+    }
+
     pthread_mutex_unlock(&rec_arg->ui_arg->mutex);
 
     // fprintf(stderr, "%s:%d in %s() → record thread seq = %ld \n", __FILE__, __LINE__, __func__,

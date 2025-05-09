@@ -32,10 +32,17 @@ static void *capture_thread(void *arg)
   {
 
     pthread_mutex_lock(&cap_arg->ui_arg->mutex);
-    while (cap_arg->ui_arg->state != STATE_RUNNING)
+
+    while (cap_arg->ui_arg->state == STATE_STOPPED)
     {
       pthread_cond_wait(&cap_arg->ui_arg->cond, &cap_arg->ui_arg->mutex);
     }
+    if (cap_arg->ui_arg->state == STATE_EXIT)
+    {
+      fprintf(stderr, "%s:%d in %s() → capture thread exit\n", __FILE__, __LINE__, __func__);
+      goto thread_exit;
+    }
+
     pthread_mutex_unlock(&cap_arg->ui_arg->mutex);
 
     // fprintf(stderr, "%s:%d in %s() → capture thread seq = %ld \n", __FILE__, __LINE__, __func__,

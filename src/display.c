@@ -66,8 +66,14 @@ static void *display_thread(void *arg)
       }
     }
 
+    if (disp_arg->ui_arg->state == STATE_EXIT)
+    {
+      fprintf(stderr, "%s:%d in %s() → display thread exit\n", __FILE__, __LINE__, __func__);
+      goto thread_exit;
+    }
+
     pthread_mutex_lock(&disp_arg->ui_arg->mutex);
-    while (disp_arg->ui_arg->state != STATE_RUNNING)
+    while (disp_arg->ui_arg->state == STATE_STOPPED)
     {
       pthread_cond_wait(&disp_arg->ui_arg->cond, &disp_arg->ui_arg->mutex);
     }
